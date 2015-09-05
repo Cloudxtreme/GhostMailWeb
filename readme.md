@@ -17,6 +17,6 @@ We use QUnit testing. We are still building our test framework and will add more
 
 ## License
 
-Copyright © GhostCom Ltd. 2014 - 2015.
+Copyright © GhostCom GmbH. 2014 - 2015.
 
 License: https://github.com/ghostmail/GhostMailWeb/edit/master/LICENSE
