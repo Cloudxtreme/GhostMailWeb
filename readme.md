@@ -12,7 +12,12 @@ Clone the repository: `git clone https://github.com/ghostmail/GhostMailWeb.git`
 
 We will add more detailed build and installation instructions.
 
+## Getting involved
+
+We accept bug suggestions and pull requests.
+
 ## Tests
+
 We use QUnit testing. We are still building our test framework and will add more tests and test tools.
 
 ## License
