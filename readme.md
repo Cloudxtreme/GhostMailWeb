@@ -6,11 +6,17 @@ This is the official web client source code for GhostMail's encrypted email, cha
 
 Website: https://www.ghostmail.com
 
-## Installation
+## How to build and install
+
 Clone the repository: `git clone https://github.com/ghostmail/GhostMailWeb.git`
+
+We will add more detailed build and installation instructions.
+
+## Tests
+We use QUnit testing. We are still building our test framework and will add more tests and test tools.
 
 ## License
 
 Copyright © GhostCom Ltd. 2014 - 2015.
 
-https://github.com/ghostmail/GhostMailWeb/edit/master/LICENSE
+License: https://github.com/ghostmail/GhostMailWeb/edit/master/LICENSE
