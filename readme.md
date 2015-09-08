@@ -24,4 +24,4 @@ We use QUnit testing. We are still building our test framework and will add more
 
 Copyright © GhostCom GmbH. 2014 - 2015.
 
-License: https://github.com/ghostmail/GhostMailWeb/edit/master/LICENSE
+License: https://github.com/ghostmail/GhostMailWeb/blob/master/LICENSE
