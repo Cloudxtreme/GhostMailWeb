@@ -1,0 +1,9 @@
+<li>
+    <a href="javascript:{;}" id="root-folder" data-item-id="{{root_id}}"><i class="fa fa-cloud"></i> Home</a>
+</li>
+{{#each breadcrumbs}}
+<li>
+    <i class="fa fa-chevron-right"></i>
+    <a href="javascript:{;}" data-item-id="{{this.id}}"><i class="fa fa-folder-open"></i> {{this.name}}</a>
+</li>
+{{/each}}

@@ -1,0 +1,83 @@
+<div class="mail-navigation clearfix hidden-print">
+    <a href="javascript:;" class="btn btn-sm default back-button" data-prev-page="{{page}}" data-prev-type="{{type}}" data-prev-recipient="{{recipient}}"><i class="fa fa-long-arrow-left" title="Back to previous page"></i></a>
+    <a href="javascript:;" class="btn btn-sm default delete-btn" data-messageid="{{recipient_type}}:{{uuid}}" title="Delete this email"><i class="fa fa-trash-o"></i></a>
+    <a href="javascript:;" class="btn btn-sm default print-btn" data-messageid="{{recipient_type}}:{{uuid}}" title="Delete this email"><i class="fa fa-print"></i></a>
+</div>
+<div class="inbox-header inbox-view-header">
+    <h1 class="pull-left"><span class="bold">Subject: <span class="view-mail-subject">{{subject}}</span></span></h1>
+</div>
+<div class="inbox-view-info">
+    <div class="row">
+        <div class="col-md-7">
+            <div style="display: block;">
+                <!--<img src="img/baby-ghost-unread.png" class="img-circle" alt=""> -->
+                <span class="bold">From: </span><span class="bold view-mail-from">{{from}}</span> on <span class="view-mail-timestamp">{{timestamp}}</span>
+            </div>
+            {{#if tof}}
+            <div style="display: block; margin-top: 10px;">
+                <span class="bold">To: </span><span class="view-mail-from">{{tof}}</span>
+            </div>
+            {{/if}}
+            {{#if ccf}}
+            <div style="display: block; margin-top: 10px;">
+                <span class="bold">Cc: </span><span class="view-mail-from">{{ccf}}</span>
+            </div>
+            {{/if}}
+        </div>
+        <div class="col-md-5 inbox-info-btn hidden-print">
+            <div class="btn-group">
+                <button data-messageid="{{uuid}}" data-from="{{from}}" class="btn blue-gm reply-btn">
+                    <i class="fa fa-reply"></i> Reply </button>
+                <button class="btn blue-gm dropdown-toggle" data-toggle="dropdown">
+                    <i class="fa fa-angle-down"></i>
+                </button>
+                <ul class="dropdown-menu pull-right">
+                    <li>
+                        <a href="javascript:;" data-messageid="{{uuid}}" data-from="{{from}}" class="reply-btn">
+                            <i class="fa fa-reply"></i> Reply </a>
+                    </li>
+                    <li>
+                        <a href="javascript:;" data-messageid="{{uuid}}" data-from="{{from}}" data-to="{{to}}" data-cc="{{cc}}" class="reply-btn">
+                            <i class="fa fa-mail-reply-all"></i> Reply all</a>
+                    </li>
+                    <li>
+                        <a href="javascript:;" data-messageid="{{uuid}}" data-from="{{from}}" class="forward-btn">
+                            <i class="fa fa-arrow-right"></i> Forward </a>
+                    </li>
+<!--
+                    <li>
+                        <a href="javascript:;" data-messageid="{{uuid}}" data-from="{{from}}" class="print-btn">
+                            <i class="fa fa-print"></i> Print </a>
+                    </li>
+-->
+                    <li class="divider">
+                    </li>                    
+                    <li>
+                        <a class="unread-btn" data-messageid="{{recipient_type}}:{{uuid}}" href="javascript:;">
+                            <i class="fa fa-pencil"></i> Mark as Unread </a>
+                    </li>
+                    <li>
+                        <a href="javascript:;" data-messageid="{{recipient_type}}:{{uuid}}" data-from="{{from}}" class="delete-btn">
+                            <i class="fa fa-trash-o"></i> Delete </a>
+                    </li>
+                    <li>
+                        <a href="javascript:;" class="print-btn">
+                            <i class="fa fa-print"></i> Print </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="view-mail-body" class="inbox-view">{{{body}}}</div>
+<hr>
+<div class="inbox-compose-attachment">
+    {{#if has_attachments}}
+    <span class="bold" style="color: rgb(102,102,102);">Open attachment(s):</span>
+    {{/if}}
+    <table role="presentation" class="table table-striped margin-top-10">
+        <tbody class="files">
+        </tbody>
+    </table>
+</div>
+

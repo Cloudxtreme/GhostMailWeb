@@ -1,0 +1,12 @@
+<ul>
+    {{#if items}}
+    {{#each items}}
+    <li class="tree-folder" data-name="{{name}}">
+        <div class="tree-folder-item" id="item_id_{{id}}{{parent_id}}" title="{{full_name}}">
+            <input type="checkbox" id="tree_{{id}}{{parent_id}}"{{#if is_open}}checked="checked"{{/if}} data-item-id="{{id}}" />
+            <label for="tree_{{id}}{{parent_id}}">{{#if has_children}}{{#if is_open}}<i class="fa fa-caret-down"></i>{{else}}<i class="fa fa-caret-right"></i>{{/if}}{{/if}}{{#if is_open}}<i class="fa fa-folder-open"></i>{{else}}<i class="fa fa-folder"></i>{{/if}} {{name}}</label>
+        </div>
+    </li>
+    {{/each}}
+    {{/if}}
+</ul>

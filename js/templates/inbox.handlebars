@@ -1,0 +1,127 @@
+<table class="table table-striped table-advance table-hover load-inbox-view">
+    <thead>
+        <tr>
+            <th colspan="4">
+                <input type="checkbox" class="mail-checkbox mail-group-checkbox">
+                    <div class="btn-group">
+                        <a class="btn btn-sm blue-gm" href="javascript:;" data-toggle="dropdown">
+                            More <i class="fa fa-angle-down"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="multiple-read-btn" href="javascript:;">
+                                    <i class="fa fa-pencil"></i> Mark as Read </a>
+                            </li>
+                            <li>
+                                <a class="multiple-unread-btn" href="javascript:;">
+                                    <i class="fa fa-pencil"></i> Mark as Unread </a>
+                            </li>
+                            <li class="divider">
+
+                            </li>
+                            <li>
+                                <a class="multiple-delete-btn" href="javascript:;">
+                                    <i class="fa fa-trash-o"></i> Delete </a>
+                            </li>
+                        </ul>
+                </div>
+            </th>
+            <th class="pagination-control" colspan="3">
+                <span class="pagination-info">
+                    {{paginator.from}}-{{paginator.to}} of {{paginator.total}} </span>
+                <a class="btn btn-paging btn-sm blue-gm{{#if paginator.is_first_page}} disabled{{/if}}" data-page="{{paginator.prev_page}}" data-type="{{mailbox}}" data-recipient="{{recipient}}">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                <a class="btn btn-paging btn-sm blue-gm{{#if paginator.is_last_page}} disabled{{/if}}" data-page="{{paginator.next_page}}" data-type="{{mailbox}}" data-recipient="{{recipient}}">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            </th>
+        </tr>
+        <tr class="thead">
+            <th class="hidden-xs">&nbsp;</th>
+            <th>&nbsp;</th>
+            <th>From:</th>
+            <th>Subject:</th>
+            <th class="text-center">Destructs:</th>
+            <th><i class="fa fa-paperclip"></i></th>	
+            <th class="text-right">Received:</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#if mails}}
+        {{#each mails}}
+        <tr {{#if this.failed}} class="unread font-red-sunglo" title="If you believe this was intentional, you can report this to security@ghostmail.com"{{else}} {{#if this.is_read}}class="view-mail"{{else}} class="view-mail unread"{{/if}} {{/if}}
+            data-messageid="{{this.uuid}}" data-to="{{this.to}}" data-cc="{{this.cc}}" data-from="{{this.from}}" data-type="{{this.type}}" data-recipient-type="{{this.recipient_type}}" data-time="{{this.time}}" data-read="{{this.is_read}}">
+             <td class="inbox-small-cells hidden-xs">
+                <input type="checkbox" class="mail-checkbox" value="{{this.recipient_type}}:{{this.uuid}}">
+            </td>
+            <td class="inbox-small-cells">
+                {{#if this.is_read}}<i class="fa fa-unlock-alt" style="font-size:1.2em;" title="Read email"></i> {{!-- <img src="img/baby-ghost.png" alt=""> --}}{{else}}<i class="fa fa-lock"  style="font-size:1.2em;" title="Unread email"></i> {{!-- <img src="img/baby-ghost-unread.png" alt=""> --}}{{/if}}
+            </td>
+            <td class="view-message" style="word-break: normal;">
+                {{this.from}}
+            </td>
+            <td class="view-message subject">
+                {{this.subject}}
+            </td>
+            <td class="view-message inbox-small-cells text-center">
+                {{#if this.auto_destruct_hrs}}<i class="fa fa-clock-o" title="{{this.auto_destruct}}"></i>{{/if}}
+            </td>
+            <td class="view-message inbox-small-cells">
+                {{#if this.attachments}}
+                <i class="fa fa-paperclip" title="{{this.attachments}} attachment(s)"></i>
+                {{/if}}
+            </td>	
+            <td class="view-message text-right" title="{{this.created_at_f}}">
+                {{this.created_at_t}}
+            </td>
+        </tr>
+        {{/each}}
+        {{/if}}
+        <tr><td colspan="7"></td></tr>
+        <thead>
+            <tr>
+                <th colspan="4">
+                    <input type="checkbox" class="mail-checkbox mail-group-checkbox">
+                        <div class="btn-group">
+                            <a class="btn btn-sm blue-gm" href="javascript:;" data-toggle="dropdown">
+                                More <i class="fa fa-angle-down"></i>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="multiple-read-btn" href="javascript:;">
+                                        <i class="fa fa-pencil"></i> Mark as Read </a>
+                                </li>
+                                <li>
+                                    <a class="multiple-unread-btn" href="javascript:;">
+                                        <i class="fa fa-pencil"></i> Mark as Unread </a>
+                                </li>
+                                <li class="divider">
+
+                                </li>
+                                <li>
+                                    <a class="multiple-delete-btn" href="javascript:;">
+                                        <i class="fa fa-trash-o"></i> Delete </a>
+                                </li>
+                            </ul>
+                    </div>
+                </th>
+                <th class="pagination-control" colspan="3">
+                    <span class="pagination-info">
+                        {{paginator.from}}-{{paginator.to}} of {{paginator.total}} </span>
+                    <a class="btn btn-paging btn-sm blue-gm{{#if paginator.is_first_page}} disabled{{/if}}" data-page="{{paginator.prev_page}}" data-type="{{mailbox}}" data-recipient="{{recipient}}">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a class="btn btn-paging btn-sm blue-gm{{#if paginator.is_last_page}} disabled{{/if}}" data-page="{{paginator.next_page}}" data-type="{{mailbox}}" data-recipient="{{recipient}}">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                </th>
+            </tr>
+        </thead>
+
+        <tr id="inbox-foot">    
+            <td colspan="4">Last update: <span class="last-mail-check">{{last_check}}</span> ({{time_zone}})</td>
+            <td colspan="3" class="text-right">Total mails: <span class="total-count">{{mails_count}}</span> - Total unread: <span class="unread-count">{{unread_count}}</span></td>        
+        </tr>
+    </tbody>
+</table>
