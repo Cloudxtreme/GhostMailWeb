@@ -1,0 +1,40 @@
+.complexity { color:black; float:right; }
+
+.progressbar {
+  position: relative;
+  /*height: 16px;*/
+  height: 3px;
+  border-radius: 4px;
+  -webkit-transition: 0.4s linear;
+  -moz-transition: 0.4s linear;
+  -o-transition: 0.4s linear;
+  transition: 0.4s linear;
+  -webkit-transition-property: width, background-color;
+  -moz-transition-property: width, background-color;
+  -o-transition-property: width, background-color;
+  transition-property: width, background-color;
+  -webkit-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+.progressbar:before, .progressbar:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.progressbar:before {
+  bottom: 0;
+  /*background: url("../img/stripes.png") 0 0 repeat;*/
+  border-radius: 4px 4px 0 0;
+}
+.progressbar:after {
+  z-index: 2;
+  bottom: 45%;
+  border-radius: 4px;
+  background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+  background-image: -moz-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+  background-image: -o-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+}
+span.ferror, label.error { color: #a94442; font-size: 0.75em; }

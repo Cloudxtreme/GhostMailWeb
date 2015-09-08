@@ -1,0 +1,61 @@
+
+body#index div.jumbotron { background:url(/common/img/bg.jpg) no-repeat bottom center; overflow:hidden; background-size:cover; color:white; }
+    body#index div.jumbotron div.container { padding:2.5em 0; text-align:center; }
+        body#index div.jumbotron div.container p { letter-spacing:0.03em; font-weight:100; }
+        body#index div.jumbotron div.container h1 span { display:none; }
+
+footer { background:#3c4d64; color:white; }
+.footer { text-align:center; padding:1em 0 0 0; }
+
+footer div.footer nav ul li { display:inline; list-style-type:none; padding-right:3em; color:white; font-size:0.85em; font-weight:normal; }
+    footer div.footer nav ul li a,
+    footer div.footer nav ul li a:visited,
+    footer div.footer nav ul li a:link { color:white; text-decoration:none; }
+    footer div.footer nav ul li a:hover,
+    footer div.footer nav ul li a:active { color:grey; text-decoration:none; }
+    
+#features div { text-align:center; margin:0 auto; margin-bottom:2em; }
+#features div.col-md-4 { margin:4em auto;  }
+    #features div h3 { font-size:1.2em; }
+#features .feature-info { display:none; position:absolute; top:0; left:0; }
+    #features .feature-info h3 { background:#78c582; color:white; margin:0 auto; padding:0.5em; }
+        #features .feature-info h3 span.tx { display:inline-block; position:relative; top:-0.7em; left:0.2em; }
+    #features .feature-info p { text-align:left; background:#3c4d64; padding:1.2em; padding-bottom:3em; color:white; font-weight:100; letter-spacing:0.03em; }
+
+.navbar-brand { background:url(/common/img/gm-icon.png) no-repeat; position:relative; top:1em; }
+    .navbar-brand span { display:none; }
+#navbar { background:url(/common/img/login-icon.png) no-repeat; position:relative; top:1em; }
+    #navbar span { position:relative; left:2em; top:-0.3em; color:white; font-weight:100; }
+
+#signup-form { border:1px solid #eee; margin-top:1.5em; }
+    #signup-form form { padding:5%; }
+        #signup-form form div.form-group label { display:none; }
+    #signup-form h3 { color:#78c582; font-weight:200;}
+    
+.anon, 
+.auto-destruct, 
+.bunker, 
+.free, 
+.secure, 
+.swiss { background:url(/common/img/icons.png) no-repeat; }
+.anon { background-position:-138px 0; width:68px; height:54px; }
+.auto-destruct { background-position:0 0; width:68px; height:54px; }
+.bunker { background-position:-70px -55px; width:68px; height:54px; }
+.free {	background-position:-136px -55px; width:68px; height:54px; }
+.secure { background-position:-71px 0; width:68px; height:54px; }
+.swiss { background-position:0 -54px; width:68px; height:54px; }
+
+.anon-s, 
+.auto-destruct-s, 
+.bunker-s, 
+.free-s, 
+.secure-s, 
+.swiss-s { background:url(/common/img/icons-sm.png) no-repeat; display:inline-block; }
+.anon-s { background-position:-104px 0; width:51px; height:40px;  }
+.auto-destruct-s { background-position:0 0; width:51px; height:40px; }
+.bunker-s { background-position:-53px -41px; width:51px; height:40px; }
+.free-s {	background-position:-102px -41px; width:51px; height:40px; }
+.secure-s { background-position:-53px 0; width:51px; height:40px; }
+.swiss-s { background-position:0 -40px; width:51px; height:40px; }
+
+    

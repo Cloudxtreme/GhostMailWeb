@@ -1,0 +1,160 @@
+.css-treeview ul,
+.css-treeview li
+{
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+ 
+.css-treeview input
+{
+    position: absolute;
+    opacity: 0;
+}
+ 
+.css-treeview
+{
+    user-select: none;
+    margin-bottom: 20px;
+}
+ 
+.css-treeview a
+{
+    color: #35d;
+    text-decoration: none;
+}
+ 
+.css-treeview a:hover
+{
+    text-decoration: underline;
+}
+ 
+.css-treeview div + ul
+{
+    margin: 0 0 0 24px;
+}
+ 
+.css-treeview input ~ ul
+{
+    display: none;
+}
+
+/*.css-treeview label {
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    white-space: nowrap;
+}*/
+ 
+.css-treeview label,
+.css-treeview label::before
+{
+    cursor: pointer;
+}
+ 
+.css-treeview input:disabled + label
+{
+    cursor: default;
+    opacity: .6;
+}
+
+.css-treeview input:checked + label
+{
+    /*cursor: default;*/
+/*    opacity: .7;
+    color: #6FA7D7;*/
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    white-space: nowrap;
+    /*width: 110px;*/
+}
+
+.css-treeview input:not(:checked) + label
+{
+    /*cursor: default;*/
+    opacity: 1;
+    color: black;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    white-space: nowrap;
+    /*width: 110px;*/
+}
+ 
+.css-treeview input:checked:not(:disabled) ~ ul
+{
+    display: block;
+}
+ 
+.css-treeview label,
+.css-treeview label::before
+{
+    /*background: url("http://experiments.wemakesites.net//pages/css3-treeview/example/icons.png") no-repeat;*/
+}
+/*
+.css-treeview .no-children label, .css-treeview .no-children label {
+    background: none;
+}*/
+ 
+.css-treeview label,
+.css-treeview a,
+.css-treeview label::before
+{
+/*    display: inline-block;
+    height: 16px;*/
+    line-height: 16px;
+    vertical-align: middle;
+}
+ 
+.css-treeview div
+{
+    background-position: 18px 0;
+}
+ 
+.css-treeview div::before
+{
+    content: "";
+    width: 16px;
+    margin: 0 22px 0 0;
+    vertical-align: middle;
+    background-position: 0 -32px;
+}
+ 
+.css-treeview input:checked + div::before
+{
+    background-position: 0 -16px;
+    /*background-color: #008000;*/
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0)
+{
+    .css-treeview 
+    {
+        -webkit-animation: webkit-adjacent-element-selector-bugfix infinite 1s;
+    }
+ 
+    @-webkit-keyframes webkit-adjacent-element-selector-bugfix 
+    {
+        from 
+        { 
+            padding: 0;
+        } 
+        to 
+        { 
+            padding: 0;
+        }
+    }
+}
+
+.css-treeview .fa-caret-right, .css-treeview .fa-caret-down {
+     margin-left: -18px;
+}
+
+.css-treeview li div.tree-folder-item {
+    padding-top: 5px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    width: 160px;
+}
+
+.css-treeview li div.selected {
+    background-color: #eee;
+}
