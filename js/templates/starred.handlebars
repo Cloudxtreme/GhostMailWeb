@@ -59,8 +59,10 @@
             <td class="inbox-small-cells">
                 {{#if this.is_read}}
                     <i class="fa fa-unlock-alt" style="font-size:1.2em;" title="Read email"></i>
+                {{!-- <img src="img/baby-ghost.png" alt=""> --}}
                 {{else}}
                     <i class="fa fa-lock"  style="font-size:1.2em;" title="Unread email"></i>
+                {{!-- <img src="img/baby-ghost-unread.png" alt=""> --}}
                 {{/if}}
             </td>
             <td class="inbox-small-cells">
@@ -137,7 +139,7 @@
 
         <tr id="inbox-foot">    
             <td colspan="5">Last update: <span class="last-mail-check">{{last_check}}</span> ({{time_zone}})</td>
-            <td colspan="3" class="text-right">Total emails: <span class="total-count">{{mails_count}}</span> - Total unread: <span class="unread-count">{{unread_count}}</span></td>
+            <td colspan="3" class="text-right">Total starred emails: <span class="total-count">{{mails_starred_count}}</span></td>
         </tr>
     </tbody>
 </table>

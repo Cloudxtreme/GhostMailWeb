@@ -14,7 +14,7 @@
  * @copyright Copyright © GhostCom GmbH. 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @author Mickey Joe <mickey@ghostmail.com>
- * @version 3.0
+ * @version 3.1
  */
 
 /**
@@ -176,6 +176,15 @@ KRYPTOS.Storage = function() {
         e.preventDefault();
         var dt = e.dataTransfer;
         if (dt.files && dt.files.length > 0) {
+            if (dt.items && dt.items.length) {  // Chrome on Mac fix to avoid folder as file
+                for (var i = 0; i < dt.items.length; i++) {
+                    var entry = dt.items[i].webkitGetAsEntry();
+                    if (entry === null || entry.isDirectory) {
+                        showErrorMessage("Folder Upload", "Folder upload is currently not supported via drag/drop.");
+                        return;
+                    }
+                }
+            }
             handleFiles(dt.files);
         }
     };
@@ -204,13 +213,22 @@ KRYPTOS.Storage = function() {
         $('#upload-files').focus();
     };
     
+    // Is folder?
     // Max 10 files
     // Max 100 MB
     // Duplicate? Replace or rename?
     var validateFiles = function(files) {
+        
+        // Is folder?
+        if (files.length === 1 && files[0].type === "" && files[0].size % 4096 === 0) {
+            showErrorMessage("Folder Upload", "Folder upload is currently not supported via drag/drop.");
+            resetFiles();
+            return false;
+        }
+        
         //Max files
         if (files.length > 10) {
-            showErrorMessage("Max Files ", "Maximum 10 files can be uploaded at the same time.");
+            showErrorMessage("Max Files", "Maximum 10 files can be uploaded at the same time.");
             resetFiles();
             return false;
         }

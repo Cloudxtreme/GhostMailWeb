@@ -1,25 +1,26 @@
-/* global KRYPTOS, converse, locales */
+/* global KRYPTOS, converse, locales, Sanitize */
 
 "use strict";
 /**
- * KRYPTOS is a cryptographic library wrapping and implementing the 
+ * KRYPTOS is a cryptographic library wrapping and implementing the
  * Web Cryptography API. It supports both symmetric keys and asymmetric key pair
  * generation, encryption, decryption, signing and verification.
- * 
+ *
  * If the Web Cryptography API is not supported by the browser, it falls back
- * to the an implementation of the MSR JavaScript Cryptography Library. 
- * 
- * 
+ * to the an implementation of the MSR JavaScript Cryptography Library.
+ *
+ *
  * @name KRYPTOS
  * @copyright Copyright © GhostCom GmbH. 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @author Mickey Joe <mickey@ghostmail.com>
- * @version 3.0
+ * @version 3.1
  */
 
 /**
  * The KRYPTOS Decrypter module.
  */
+
 KRYPTOS.Chat = function() {
     
     var url = KRYPTOS.session.getItem('bosh_service_url');
@@ -30,14 +31,20 @@ KRYPTOS.Chat = function() {
     
     var rid = KRYPTOS.session.getItem('rid');
     
-    var pdk = null;
+    var notification = null;
+    
+    var sanitizer = new Sanitize(Sanitize.Config.MAIL);
+    
+    //var pdk = null;
     
     var me = null;
     
     var activeWindow = true;
     
     var unreadMessages = 0;
-    
+
+    var onRecovery = null;
+
     var logout = function() {
         converse.account.logout();
     };
@@ -49,11 +56,16 @@ KRYPTOS.Chat = function() {
         return true;
     };
     
-    var init = function(username) {
+    var init = function(username, notifier) {
         if (!isEnabled()) {
             return; // Chat disabled
         }
         me = username;
+        notification = notifier;
+//        if (!url || !jid || !sid || !rid) {
+//            alert('Could not start chat session');
+//            return;
+//        }
         
         handleInitialized();
         
@@ -70,7 +82,7 @@ KRYPTOS.Chat = function() {
         handleOutbound();
         
         handleNoresumableSession();
-        
+
         converse.initialize({
             allow_registration: false,
             prebind_url: "/chat/prebind",
@@ -106,25 +118,14 @@ KRYPTOS.Chat = function() {
         });
     };
     
-    var getPdk = function(callback) {
-        if (pdk !== null) {
-            callback(pdk);
-        }
-        else {
-            KRYPTOS.getPrivateDecryptionKey(function(success, result) {
-                if (!success) {
-                    console.log('problem with PDK');
-                } else {
-                    pdk = result;
-                }
-                callback(pdk);
-            });
-        }
-    };
-    
+
     var handleInitialized = function() {
         converse.listen.on('initialized', function (event) {
-            
+            //console.log('### initialized ###');
+            if (onRecovery !== null)  {
+                clearInterval(onRecovery);
+                onRecovery = null;
+            }
         });
     };
     
@@ -154,7 +155,13 @@ KRYPTOS.Chat = function() {
             var mKey = null;
             me = me.replace(/@.*$/,'');            
             if (message !== '') {
-                getPdk(function(pdk) {
+//                KRYPTOS.Keys.getPublicKeys(from, function (pek, pvk) {
+            KRYPTOS.getPrivateDecryptionKey(function(success, pdk) {
+                    if (!success) {
+                        console.log('pdk problem!');
+                        return;
+                    }
+
                     var messageObj = KRYPTOS.utils.b642obj(message);
                     for (var i in messageObj.keys) {
                         if (messageObj.keys[i].u === me) {
@@ -164,7 +171,7 @@ KRYPTOS.Chat = function() {
 
                     }
                     if (mKey === null) {
-//                            console.log('no key');
+                        console.log('no key');
                         return;
                     }
                     messageObj.key = KRYPTOS.utils.b642ab(mKey);
@@ -174,11 +181,14 @@ KRYPTOS.Chat = function() {
                     //var pvk = KRYPTOS.Keys.getPublicKey(from, 'verify');
                     KRYPTOS.Keys.getPublicKey(messageObj.from, 'verify', function(pvk) {
                         new KRYPTOS.Decrypter(messageObj.key, messageObj.iv, messageObj.message, messageObj.signature, pvk, pdk, function(plainText) {
-                            chat.message.children('body').text(decodeURIComponent(plainText));
+                            chat.message.children('body').html(KRYPTOS.utils.escapeHTML(decodeURIComponent(plainText)));
                             if (chat.object.model && chat.object.model.get('chatroom')) {
                                 chat.object.model.createMessage(chat.message, chat.object.$delay, chat.object.archive_id);
                             } else {
                                 chat.object.receiveMessage(chat.message);
+                                if (!activeWindow) {
+                                    notification.notify("GhostChat", "You've got a new GhostChat!");
+                                }
                             }
 
                             if (!activeWindow) {
@@ -215,7 +225,7 @@ KRYPTOS.Chat = function() {
             }
             KRYPTOS.Keys.getRecipientsPublicKeys(to, function(success, message) {
                 if (success) {
-                    var plainText = encodeURIComponent(KRYPTOS.utils.escapeHTML(chat.message));
+                    var plainText = encodeURIComponent(chat.message);
                     var Encrypter = new KRYPTOS.Encrypter(plainText, {to:to}, false, function(success, result) {
                         if (success) {
                             result.from = me;
@@ -252,16 +262,30 @@ KRYPTOS.Chat = function() {
             }
         });
     };
-    
+
+    var recoverFromNoResumableSession = function() {
+        handleInitialized = null;
+        handleReady = null;
+        handleReconnect = null;
+        handleStatus = null;
+        handleContactStatus = null;
+        handleInbound = null;
+        handleOutbound = null;
+        handleNoresumableSession = null;
+        this.init();
+    };
+
+
     var handleNoresumableSession = function() {
         converse.listen.on('noResumeableSession', function (event) {
-
+            console.log('### noResumeableSession ### ');
+            onRecovery = setInterval(function(){ recoverFromNoResumableSession() }, 3000);
         });
     };
     
     var handleReconnect = function() {
         converse.listen.on('reconnect', function (event) {
-            
+            console.log('### reconnect ### ');
         });
     };
     

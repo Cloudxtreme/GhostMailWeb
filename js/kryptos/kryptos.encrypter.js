@@ -14,7 +14,7 @@
  * @copyright Copyright © GhostCom GmbH. 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @author Mickey Joe <mickey@ghostmail.com>
- * @version 3.0
+ * @version 3.1
  */
 
 /**
@@ -230,9 +230,7 @@ KRYPTOS.Encrypter = function (plainText, recipients, plainMode, callback) {
      */
     var encryptRecipientSessionKey = function(recipient) {
         var username = KRYPTOS.utils.e2u(recipient);
-        
         var publicKeys = JSON.parse(KRYPTOS.session.getItem(KRYPTOS.Keys.prefix + username));
-        
         var aesKey = null;
     
         return new KRYPTOS.Promise(function(resolve, reject) {
@@ -539,6 +537,33 @@ KRYPTOS.Encrypter = function (plainText, recipients, plainMode, callback) {
                             encrypterCallback(false, error.message);
                         }
                     });
+        },
+        encryptSignatureMessage: function() {
+            return generateSessionKey()
+                .then(saveSessionKey)
+                .then(encryptPlainText)
+                .then(saveEncryptedPlainText)
+                .then(exportSessionKey)
+                .then(saveExportedSessionKey)
+                .then(KRYPTOS.importIntermediateKeyUnwrapKey)
+                .then(KRYPTOS.unwrapPrivateSignKey)
+                .then(signEncryptedPlainText)
+                .then(saveSignature)
+                .then(encryptSessionKeys)
+                .then(function(sessionKeys) {
+                    encrypterCallback(true, {
+                        m: KRYPTOS.utils.ab2b64(encryptedPlainText[1]),
+                        iv: KRYPTOS.utils.ab2b64(encryptedPlainText[0]),
+                        s: KRYPTOS.utils.ab2b64(signature),
+                        k: sessionKeys[0].k
+                    });
+                })
+                .catch(function (error) {
+                    KRYPTOS.utils.log(error);
+                    if (encrypterCallback) {
+                        encrypterCallback(false, error.message);
+                    }
+                });
         },
         encryptNewItemAssignment: function(keyStore) {
             return generateSessionKey() //.catch(function (error) {console.log('e1'); console.log(error); KRYPTOS.utils.log(error);})

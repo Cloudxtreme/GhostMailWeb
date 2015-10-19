@@ -14,7 +14,7 @@
  * @copyright Copyright © GhostCom GmbH. 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @author Mickey Joe <mickey@ghostmail.com>
- * @version 3.0
+ * @version 3.1
  */
   
 /** 
@@ -40,6 +40,9 @@ KRYPTOS.Decrypter = function(encryptedKey, iv, cipherText, signature, theirPubli
     var exportedFileSessionKey = null;
     var sessionKey = null;
     var hmacKey = null;
+
+    var tmpPk  = null;
+    var tmpKey = null;
     
     var verifyEncryptedMessage = function() {
         if (KRYPTOS.MSR) {
@@ -96,7 +99,13 @@ KRYPTOS.Decrypter = function(encryptedKey, iv, cipherText, signature, theirPubli
         if (KRYPTOS.MSR) {
             return msrDecryptKey();
         }
-        return KRYPTOS.cryptoSubtle.decrypt({name: "RSA-OAEP"}, privateKey, key);
+        return KRYPTOS.cryptoSubtle.decrypt({name: "RSA-OAEP"}, privateKey, key).catch(
+            function (error) {
+                console.log(error);
+                console.log(' ### ReTrying decrypt ###');
+                if (privateKey != null && key != null)
+                    return KRYPTOS.cryptoSubtle.decrypt({name: "RSA-OAEP"}, privateKey, key);
+            });
     };
     
     var msrDecryptKey = function() {

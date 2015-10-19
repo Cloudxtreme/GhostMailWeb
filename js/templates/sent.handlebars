@@ -1,7 +1,7 @@
 <table class="table table-striped table-advance table-hover">
     <thead>
         <tr>
-            <th colspan="4">
+            <th colspan="3">
             
                 <input type="checkbox" class="mail-checkbox mail-group-checkbox">
                 <div class="btn-group">
@@ -33,7 +33,6 @@
             <th>&nbsp;</th>
             <th>To:</th>
             <th>Subject:</th>
-            <th>Read at:</th>
             
             <th><i class="fa fa-paperclip"></i></th>	
             <th class="text-right">Sent:</th>
@@ -42,22 +41,18 @@
     <tbody>
         {{#if mails}}
         {{#each mails}}
-        <tr {{#if this.is_read}} class="view-mail"{{else}} class="view-mail unread"{{/if}}
-            data-messageid="{{this.uuid}}" data-to="{{this.to}}" data-cc="{{this.cc}}" data-from="{{this.from}}" data-type="{{this.type}}" data-recipient-type="{{this.recipient_type}}" data-time="{{this.time}}">
+        <tr class="view-mail" data-messageid="{{this.uuid}}" data-to="{{this.to}}" data-cc="{{this.cc}}" data-from="{{this.from}}" data-type="{{this.type}}" data-recipient-type="{{this.recipient_type}}" data-time="{{this.time}}">
             <td class="inbox-small-cells hidden-xs">
                 <input type="checkbox" class="mail-checkbox" value="{{this.recipient_type}}:{{this.uuid}}">
             </td> 
             <td class="inbox-small-cells">
-                {{#if this.is_read}}<img src="img/baby-ghost.png" alt="">{{else}}<img src="img/baby-ghost-unread.png" alt="">{{/if}}
+                <i class="fa fa-lock" style="font-size:1.2em;"></i>
             </td>
             <td class="view-message" style="word-break: normal;">
                 <spam title="{{this.recipients.all}}">{{this.recipients.first}}</span>
             </td>
             <td class="view-message subject">
-                {{this.subject}}
-            </td>
-            <td class="view-message">
-                {{#if this.is_read}}{{this.read_at_t}}{{else}}Not read yet{{/if}}
+                {{this.subject_f}}
             </td>
             
             <td class="view-message inbox-small-cells">
@@ -71,10 +66,10 @@
         </tr>
         {{/each}}
         {{/if}}
-        <tr><td colspan="7"></td></tr>
+        <tr><td colspan="6"></td></tr>
         <thead>
             <tr>
-                <th colspan="4">
+                <th colspan="2">
                     
                     <input type="checkbox" class="mail-checkbox mail-group-checkbox">
                         <div class="btn-group">
@@ -103,8 +98,8 @@
             </tr>
         </thead>
         <tr id="inbox-foot">
-            <td colspan="4">&nbsp;</td>
-            <td colspan="3" class="text-right">Total sent mails: <span class="total-sent-count">{{mails_count}}</span></td>      
+            <td colspan="3">&nbsp;</td>
+            <td colspan="3" class="text-right">Total sent emails: <span class="total-sent-count">{{mails_count}}</span></td>
         </tr>
     </tbody>
 </table>

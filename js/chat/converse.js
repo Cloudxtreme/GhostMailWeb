@@ -612,7 +612,6 @@
                         this.connection.route
                     );
                 } else if (converse.prebind_url && !this.reconnecting) {
-//                    console.log('this.reconnecting = false');
                     this.clearSession();
                     this._tearDown();
                     this.startNewBOSHSession();
@@ -639,23 +638,14 @@
                     converse.onConnected();
                 }
             } else if (status === Strophe.Status.DISCONNECTED) {
-//                console.log(Strophe.Status.DISCONNECTED);
-//                console.log(status);
-//                console.log(Strophe.Status.CONNFAIL);
-//                console.log(converse.disconnection_cause);
-//                console.log(condition);
-//                console.log(reconnect);
+                //converse.log('Status Disconnected ... calling reconnect');
+                //converse.reconnect(condition);
                 if (converse.disconnection_cause == Strophe.Status.CONNFAIL && converse.auto_reconnect) {
-                    //console.log('reconnecting...');
                     if (condition) {
-                        //console.log('reconnect true');
+                        converse.log('Status Disconnected ... calling reconnect');
                         converse.reconnect(condition);
                     }
-//                    else {
-//                        console.log('reconnect not true');
-//                    }
                 } else {
-//                    console.log('NADA!');
                     converse.renderLoginPanel();
                 }
             } else if (status === Strophe.Status.ERROR) {
@@ -673,7 +663,11 @@
             } else if (status === Strophe.Status.DISCONNECTING) {
                 // FIXME: what about prebind?
                 if (!converse.connection.connected) {
-                    converse.renderLoginPanel();
+                    if(converse.prebind) {
+                        converse.reconnect();
+                    } else {
+                        converse.renderLoginPanel();
+                    }
                 }
                 if (condition) {
                     converse.giveFeedback(condition, 'error');
@@ -1131,7 +1125,7 @@
 
             createMessage: function ($message, $delay, archive_id) {
                 $delay = $delay || $message.find('delay');
-                var body = $message.children('body').text(),
+                var body = $message.children('body').html(),
                     delayed = $delay.length > 0,
                     fullname = this.get('fullname'),
                     is_groupchat = $message.attr('type') === 'groupchat',
@@ -1142,7 +1136,7 @@
                         $message.find(ACTIVE).length && ACTIVE ||
                         $message.find(GONE).length && GONE,
                     stamp, time, sender, from;
-
+                    
                 if (is_groupchat) {
                     from = Strophe.unescapeNode(Strophe.getResourceFromJid($message.attr('from')));
                 } else {
@@ -1513,7 +1507,7 @@
                         'username': username,
                         'message': '',
                         'extra_classes': extra_classes
-                    })).children('.chat-message-content').first().text(text)
+                    })).children('.chat-message-content').first().html(text)
                         .addHyperlinks()
                         .addEmoticons(converse.visible_toolbar_buttons.emoticons).parent();
             },
@@ -1631,7 +1625,7 @@
                         fullname: fullname,
                         sender: 'me',
                         time: moment().format(),
-                        message: text
+                        message: KRYPTOS.utils.escapeHTML(text)
                     });
                     converse.emit('messageSend', {message: text, object: obj});
                     //this.sendMessage(text);
@@ -3580,10 +3574,6 @@
                     contact = converse.roster.get(from),
                     result;
                     
-//                console.log(name);
-//                console.log(room_jid);
-//                 console.log(from);
-//                 console.log(contact.get('fullname').replace(/@.*$/,''));
                 if (name) {
                     
                     bootbox.confirm(

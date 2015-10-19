@@ -381,6 +381,8 @@
 
 /** Overrides **/
 .froala-view p, p.fr-tag {
-    margin: 0 0 3px;
-    line-height: 0.95em;
+    margin: 0;
+    line-height: 1.3em;
+    font-size: 15px;
+    min-height: 12px;
 }

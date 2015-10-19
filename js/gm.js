@@ -1,17 +1,5 @@
 /* global KRYPTOS, showWarningMessage, Inbox */
-"use strict";
 
-/**
- * Handles login & authentication, registration, change password and 
- * session token
- * 
- * TODO: needs refactoring
- * 
- * @name Inbox 
- * @copyright Copyright © GhostCom Ltd. 2014 - 2015.
- * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
- * @version 3.0
- */
 function resetToken() {
     $.ajaxSetup({
         headers: {
@@ -254,6 +242,7 @@ function logout(showWarning, fullLogout) {
     KRYPTOS.clear();    
         
     if (fullLogout) {
+        window.location.replace("/login");
         var logoutAction = $.post("/logout");
         logoutAction.done(function(response) {
             //console.log(response);

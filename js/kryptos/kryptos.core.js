@@ -13,7 +13,7 @@
  * @copyright Copyright © GhostCom GmbH. 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @author Mickey Joe <mickey@ghostmail.com>
- * @version 3.0
+ * @version 3.1
  */
 
 /**
@@ -168,6 +168,8 @@ var KRYPTOS = KRYPTOS || {
     mailPassword: null,
     
     accountPassword: null,
+
+    cachePdk: null,
     
     nonce: function() {
         return KRYPTOS.randomValue(16);
@@ -1075,14 +1077,20 @@ var KRYPTOS = KRYPTOS || {
      * @returns {unresolved}
      */
     getPrivateDecryptionKey: function(callback) {
-        return KRYPTOS.importIntermediateKeyUnwrapKey()
+        if (KRYPTOS.cachePdk !== null) {
+            callback(true, KRYPTOS.cachePdk);
+        } else {
+            return KRYPTOS.importIntermediateKeyUnwrapKey()
                 .then(KRYPTOS.unwrapPrivateDecryptionKey)
-                .then(function(pdk) {
+                .then(function (pdk) {
+                    KRYPTOS.cachePdk = pdk;
                     callback(true, pdk);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     KRYPTOS.utils.log(error);
+                    KRYPTOS.cachePdk = null;
                     callback(false, error.message ? error.message : error);
                 });
+        }
     },
     
     /**
@@ -1377,7 +1385,7 @@ KRYPTOS.Keys = {
 //            var sessionInfo = JSON.parse(KRYPTOS.utils.ab2str(extra));
             if (jsonObj) {
                 for (var prop in jsonObj) {
-                    if(jsonObj.hasOwnProperty(prop) && prop !== 'iak') {
+                    if(jsonObj.hasOwnProperty(prop) && prop !== 'iak' && prop !== 'chat_password') {
                         KRYPTOS.session.setItem(prop, jsonObj[prop]);
                     }
                  }
@@ -1649,7 +1657,23 @@ KRYPTOS.Messages = {
     unread: function(uuid, callback) {
         KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'unread', callback); //function(json, resource, type, callback)
     },
-    
+
+    star: function(uuid, callback) {
+        KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'star', callback);
+    },
+
+    unstar: function(uuid, callback) {
+        KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'unstar', callback);
+    },
+
+    business: function(uuid, callback) {
+        KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'business', callback);
+    },
+
+    unbusiness: function(uuid, callback) {
+        KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'unbusiness', callback);
+    },
+
     delete: function(uuid, callback) {
         this.remove(uuid);
         KRYPTOS.utils.sendJson({message_id: uuid}, 'messages', 'delete', callback); //function(json, resource, type, callback)
@@ -1959,6 +1983,7 @@ KRYPTOS.utils = {
                             });
                         }
                         else {
+                            data.mails[i].subject_f = data.mails[i].subject;
                             data.mails[i].body = data.mails[i].mail;
                             KRYPTOS.Messages.add(data.mails[i].uuid, data.mails[i]);
                         }
@@ -1973,9 +1998,11 @@ KRYPTOS.utils = {
                                         data.mails[i].attachments_meta = result[j].plain.attachments;
                                         if (result[j].plain.subject === '') {
                                             data.mails[i].subject = '(no subject)';
+                                            data.mails[i].subject_f = '(no subject)';
                                         }
                                         else {
-                                            data.mails[i].subject = KRYPTOS.utils.formatSubject(result[j].plain.subject);
+                                            data.mails[i].subject = decodeURIComponent(result[j].plain.subject);
+                                            data.mails[i].subject_f = KRYPTOS.utils.formatSubject(result[j].plain.subject);
                                         }
                                         data.mails[i].failed = result[j].failed;
                                         KRYPTOS.Messages.add(data.mails[i].uuid, data.mails[i]);
@@ -1992,6 +2019,7 @@ KRYPTOS.utils = {
             }
             else {
                 for (var i = 0; i < data.mails.length; i++) {
+                    data.mails[i].subject_f = data.mails[i].subject;
                     data.mails[i].body = data.mails[i].mail;
                     KRYPTOS.Messages.add(data.mails[i].uuid, data.mails[i]);
                     //KRYPTOS.session.setItem("m" + data.mails[i].uuid, JSON.stringify(data.mails[i]));
@@ -2106,11 +2134,30 @@ KRYPTOS.utils = {
     },
     
     escapeHTML: function(s) {
-        return s.toString().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        var entityMap = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': '&quot;',
+            "'": '&#39;',
+            "/": '&#x2F;'
+          };
+        return String(s).replace(/[&<>"'\/]/g, function (s) {
+            return entityMap[s];
+        });
+        //return s.toString().replace(/</g, "&lt;").replace(/>/g, "&gt;");
     },
     
     dot2us: function(s) {
         return s.toString().replace(".", "_");
+    },
+    
+    safeOpen: function(click) {
+        console.log('safeOpen');
+        var url = click.attr('href');
+        var win = window.open(url, '_blank');
+        win.focus();
+        win.opener = null; // Certain phishing attacks prevention
     },
     
     cleanString: function(s, strict) {
@@ -2141,6 +2188,13 @@ KRYPTOS.utils = {
             return s.replace(/\\n/g, "<br />").replace(/\"/g, '"').replace(/\'/g, "'").replace(/\“/g, "“").replace(/\”/g, "”").replace(/\’/g, "’");
         }
         return "";
+    },
+    
+    sanitize: function(sanitizer, content) {
+        var sanitized = sanitizer.clean_node($("<div>" + content + "</div>").get(0));
+        var div = document.createElement('div');
+        div.appendChild(sanitized.cloneNode(true));
+        return div.innerHTML;
     },
     
     /**

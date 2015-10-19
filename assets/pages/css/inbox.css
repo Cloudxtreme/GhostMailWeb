@@ -180,16 +180,20 @@ Inbox Page
   margin-right: 10px;
 }
 
-.inbox ul.inbox-nav i {
-  color: #fff;
+.inbox ul.inbox-nav li i {
+  color: #3B4D64;
   padding: 1px 0;
   font-size: 15px;
   cursor: pointer;
-  background: #d0dde4 !important;
+  /*background: #d0dde4 !important;*/
 }
 
+.inbox ul.inbox-nav li.active i {
+    color: #fff;
+} 
+
 .inbox ul.inbox-nav i:hover {
-  background: #169ef4 !important;
+  /*background: #169ef4 !important;*/
 }
 
 .inbox td.text-right {
@@ -494,6 +498,8 @@ ul.wysihtml5-toolbar a.btn.wysihtml5-command-active {
 
 #unsafe-mail { background:#D4242F; color:white; padding:0.5em; font-size:1em; text-align:center; }
 
+div.storage-bar p span.formatted-line { white-space:nowrap; }
+
 @media (max-width: 480px) {
     .inbox-compose .inbox-form-group > label {
         margin-top: 7px;
@@ -643,7 +649,7 @@ ul.wysihtml5-toolbar a.btn.wysihtml5-command-active {
 
 /* Newsletter System email */
 
-div#system-email { font-size:1.1em; padding:15px; }
+div#system-email { font-size:1.1em; padding:15px; text-align:justify; }
 div#system-email hr { border-color:grey; margin:4rem 0; }
 div#system-email div.se-header { background:#3c4d64 url(/img/cover-bg.png) no-repeat top center; overflow:hidden; padding:3rem; text-align:center; }
     div#system-email div.se-header p { color:white; margin:1.8rem 0; }

@@ -34,5 +34,15 @@ $(document).ready(function () {
     //extenal links should open in new window
     $(".container a[href^='http://']").attr("target","_blank");
     
+    setTimeout(function() {
+        $("#banner").slideDown(function()  {
+           setTimeout(function() {             
+             $("#banner").slideUp(); 
+           }, 10000); //side up after 5 seconds
+        });
+    }, 500);
+    $('#js-close-lang').on('click', function(){
+        $("#banner").slideUp();
+    });
+    
 });
-

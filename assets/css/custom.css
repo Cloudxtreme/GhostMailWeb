@@ -746,3 +746,14 @@ div.settings-txt p.margin-top-10 { font-size:1.1em; }
     padding: 10px 5px 5px 5px;
     z-index:9;
 }
+
+#view-mail-body p {
+    margin: 0;
+    line-height: 1.3em;
+    font-size: 15px;
+    min-height: 12px;
+}
+
+.inbox-view {
+    padding: 0;
+}

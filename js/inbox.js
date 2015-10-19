@@ -1,11 +1,11 @@
-/* global KRYPTOS, Handlebars, showErrorMessage, Layout, Metronic, URL, ComponentsjQueryUISliders */
+/* global KRYPTOS, Handlebars, showErrorMessage, Layout, Metronic, URL, ComponentsjQueryUISliders, Sanitize */
 "use strict";
 
 /**
  * Inbox
  * 
  * @name Inbox 
- * @copyright Copyright © GhostCom Ltd. 2014 - 2015.
+ * @copyright Copyright © GhostCom GmbH 2014 - 2015.
  * @license Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
  * @version 3.0
  */
@@ -17,14 +17,18 @@ var Inbox = function () {
     var storage = $('.storage-content');
     var loading = $('.inbox-loading');
     var listListing = '';
+    var notification = new Notifications();
     var sound = null;
     var templateInbox = Handlebars.templates['inbox'];
     var templateSent = Handlebars.templates['sent'];
     var templateDrafts = Handlebars.templates['drafts'];
+    var templateStarred = Handlebars.templates['starred'];
+    var templateBusiness = Handlebars.templates['business'];
     var templateViewMail = Handlebars.templates['view-mail'];
     var templateAttachmentsUpload = Handlebars.templates['attachments-upload'];
     var templateAttachmentsDownload = Handlebars.templates['attachments-download'];
     var templateNotifications = Handlebars.templates['notifications'];
+    var sanitizer = new Sanitize(Sanitize.Config.MAIL);
     var emailList = new Array();
     var recipientsSecure = null;    
     var wysihtml5Editor = null;
@@ -40,7 +44,19 @@ var Inbox = function () {
     var currentRecipient = '';
     
     var chatEnabled = true;
-    
+
+    var userSettings = null;
+
+    var loadUserSettings = function() {
+        $.getJSON('/users/settings', function(data) {
+            if (data == null) {
+                userSettings = null;
+            } else {
+                userSettings = data;
+            }
+        });
+    };
+
     // sound disabled
     var loadSound = function() {
 //        sound = document.createElement('audio');
@@ -88,7 +104,7 @@ var Inbox = function () {
         titleUpdating = false;
     };
     
-    var mailCheck = function() {
+    var mailCheck = function(skipNotification) {
         $.ajax({
             type: "GET",
             cache: false,
@@ -119,8 +135,12 @@ var Inbox = function () {
                 }
                 if (data.unread_count && data.unread_count !== 0) {
                     if (parseInt(currentCount) < data.unread_count) {
-
-                        playSound();
+                        //console.log('skipNotification');
+                        //console.log(skipNotification);
+                        if (skipNotification !== true) {
+                            playSound();
+                            notification.notify("GhostMail", "You've got a new GhostMail!");
+                        }
                         // auto load inbox only when visible
                         if (content.children('table').hasClass('load-inbox-view')) {
                             loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
@@ -178,10 +198,10 @@ var Inbox = function () {
         }
     };
     
-    var loadInbox = function(el, type, page, recipient) {
+    var loadInbox = function(el, type, page, recipient, skipNotification) {
         active = 0;
         $(".Metronic-alerts").remove();
-        mailCheck();
+        mailCheck(skipNotification);
         $('.overlay').show();
         var title = $('.inbox-nav > li.' + type + ' a').attr('data-title');   
         var params = page ? "?" + $.param({
@@ -249,6 +269,8 @@ var Inbox = function () {
                                 case 'inbox': html = templateInbox(mails); break;
                                 case 'sent': html = templateSent(mails); break;
                                 case 'drafts': html = templateDrafts(mails); break;
+                                case 'starred': html = templateStarred(mails); break;
+                                case 'business': html = templateBusiness(mails); break;
                             }
                         }
                         content.html(html);
@@ -700,13 +722,15 @@ var Inbox = function () {
                 }
             }
             if (key && hmac) {
+                $('.inbox-compose-attachment table tbody.files tr[data-fileid="'+fileId+'"] .progress-bar').attr('style', 'width:0%');
+                $('.inbox-compose-attachment table tbody.files tr[data-fileid="'+fileId+'"] .progress-percent').html('0%');
                 KRYPTOS.utils.getAttachment(uuid, fileId, key, hmac, function (success, attachment) {
                     if (success) {
-                        var url = URL.createObjectURL(new Blob([attachment], {type: type}));
+//                        var url = URL.createObjectURL(new Blob([attachment], {type: type}));
                         var $fileNameSelector = $aRow.find('span.filename');
                         var fileName = $fileNameSelector.text();
-                        $fileNameSelector.html('<a href="' + url + '" download="' + fileName + '">' + fileName + '</a>');
-                        $aRow.removeClass('enabled');
+//                        $fileNameSelector.html('<a href="' + url + '" download="' + fileName + '">' + fileName + '</a>');
+//                        $aRow.removeClass('enabled');
                         $aRow.find('button').html('<i class="fa fa-unlock"></i>'); 
                         $aRow.find('button').prop('title', 'Click on the file name to view');
                         saveAs(new Blob([attachment], {type: type}), fileName);
@@ -731,6 +755,7 @@ var Inbox = function () {
     };
 
     var loadCompose = function (el, uuid, type, from, to, cc) {
+        if (!userSettings) loadUserSettings();
         active = 1;
         var url = 'mail/compose';
         attachmentsMeta = [];
@@ -764,6 +789,51 @@ var Inbox = function () {
 
                     initFileUpload();
                     initEditor();
+
+                    if (userSettings['settings.mail.signatures.enable'] == 1) {
+                        var messageObj = JSON.parse(userSettings['settings.mail.signatures']);
+                        KRYPTOS.getPrivateDecryptionKey( function (success, pdk) {
+                            if (success) {
+                                messageObj.key = KRYPTOS.utils.b642ab(messageObj.k);
+                                messageObj.iv = KRYPTOS.utils.b642ab(messageObj.iv);
+                                messageObj.message = KRYPTOS.utils.b642ab(messageObj.m);
+                                messageObj.signature = KRYPTOS.utils.b642ab(messageObj.s);
+                                KRYPTOS.Keys.getPublicKey(username, 'verify', function(pvk) {
+                                    new KRYPTOS.Decrypter(messageObj.key, messageObj.iv, messageObj.message, messageObj.signature, pvk, pdk, function(plainText) {
+                                        //               (encryptedKey  , iv           , cipherText        , signature           , theirPublicKey, privateKey, callback)
+                                        if (plainText) {
+                                            if (uuid) {
+                                                //var json = KRYPTOS.Messages.get(uuid);
+                                                if (type === 'Reply') {
+                                                    var timeFrom = KRYPTOS.utils.timestamp(KRYPTOS.Messages.get(uuid).timestamp) + ' from ' + from;
+                                                    var editorContent = decodeURIComponent(plainText.text) +
+                                                        "<br><br>" + timeFrom + "<br>------------------------------<br>" +
+                                                        decodeURIComponent(KRYPTOS.utils.unescapeJson(KRYPTOS.Messages.get(uuid).body));
+                                                    plainText.text = editorContent;
+                                                    //editor.editable('setHTML', decodeURIComponent(plainText.text), true);
+                                                    focusEditor(plainText.text);
+                                                } else if (type === 'Forward' ) {
+                                                    var subject = decodeURIComponent(KRYPTOS.Messages.get(uuid).subject);
+                                                    if(subject.indexOf("FW: ") === -1) {
+                                                        subject = "FW: " + subject;
+                                                    }
+                                                    var timestamp = KRYPTOS.utils.timestamp(KRYPTOS.Messages.get(uuid).timestamp);
+                                                    var editorContent = "<br><br>------------ Forwarded message ------------<br>From: "+
+                                                        from+"<br>Date: "+timestamp+"<br>Subject: "+subject+"<br>" +
+                                                        decodeURIComponent(KRYPTOS.utils.unescapeJson(KRYPTOS.Messages.get(uuid).body));
+                                                    plainText.text = decodeURIComponent(plainText.text) + editorContent;
+                                                } else {
+                                                    plainText.text = KRYPTOS.Messages.get(uuid).body;
+                                                }
+                                            }
+                                            editor.editable('setHTML', decodeURIComponent(plainText.text), true);
+                                        }
+                                    }).decrypt();
+                                });
+                            }
+                        });
+                    }
+
                     ComponentsjQueryUISliders.init();
 
                     if (type === 'Compose' || type === 'Forward') {
@@ -777,7 +847,7 @@ var Inbox = function () {
                     }
                     handleCCInput();
 
-                    $('input:radio[name="autodest"]').change(function() { 
+                    $('input:radio[name="autodest"]').change(function() {
                         if($(this).val() === 'yes') {
                            $('#ad-slider-s').show();
                         }
@@ -889,7 +959,7 @@ var Inbox = function () {
             callback();
         });
     };
-    
+
     var leftMenu = function(item) {
         $('.inbox-nav > li.active').removeClass('active');
         $('.inbox-nav > li.' + item).addClass('active');
@@ -899,21 +969,42 @@ var Inbox = function () {
         window.opener = null;
         loading.hide();
         $('.overlay').hide();
+        var show_starring = false;
+
+        if (json.recipient_type === 'from') {
+            show_starring = false;
+        } else {
+            show_starring = true;
+        }
+//        console.log('------------');
+//        console.log(decodeURIComponent(json.body));
+//        console.log('------------');
+        
         clearContent(function() {
+            var sanitized = json.type === 'system' ? decodeURIComponent(json.body) : KRYPTOS.utils.sanitize(sanitizer, decodeURIComponent(json.body));
+//            var str = '<p>We need to look into this issue as soon as possible.</p><p>Ajay try first if you can verify what he is saying, sending an email. Insert the &lt;meta... code with inspect element in chrome (not in the compose area)</p><p>Thanks!</p><p>Greetings,</p><p>Firstly, I wanted to say thank you for developing such a great service! I\'ve enjoyed using GhostMail so far.</p><p>While exchanges mail with two test accounts I created, I found that input such as the following two examples are not escaped in mail bodies and are not protected against using Content-Security-Policy headers:</p><ol>  <li><meta http-equiv="refresh" content="0;url=http://ericrafaloff.com"/></li></ol><p>The above will refresh the page and redirect the victim to whatever URL is specified. This works across all browsers. The result is that upon opening an email on GhostMail containing the above, I am immediately redirected to another website.</p><p>The above can also lead to js evaluation in certain browsers. Chrome seems to prevent eval\'ing js specified after the url=. However, some research shows that older versions of Chrome don\'t and I have yet to explore using other browsers to test this. Seems nasty.</p><ol>  <li>&lt;meta http-equiv="Set-Cookie" content="COOKIE_NAME=test; path=/; expires=Thursday, 20-May-18 00:12:00 GMT"&gt;</li></ol><p>This effectively forces the client to set a cookie. I have yet to explore this attack avenue much, but I believe it to be quite dangerous since cookies are used to persist sessions and identify unique users.</p><p>Please let me know if you require any additional information.</p><p>Have a nice day!</p><p>____________________________________</p><p>GhostCom GmbH</p><p>Mickey Joe</p><p>CTO &amp; Co-Founder</p><p><a href="https://www.ghostmail.com">https://www.ghostmail.com</a>&nbsp;&nbsp;</p><p><a href="https://www.facebook.com/SecureGhostMail">https://www.facebook.com/SecureGhostMail</a>&nbsp;</p><p>@SecureGhostMail</p><p>mickey@ghostmail.com</p>';
+//            var sanitized = KRYPTOS.utils.sanitize(sanitizer, str);
+//            console.log('------------');
+//            console.log(sanitized);
+//            console.log('------------');
+//            console.log(json);
             var html = templateViewMail({
                 page: currentPage,
                 type: currentType,
                 recipient: currentRecipient,
                 uuid: uuid,
-                subject: decodeURIComponent(json.subject),
+                subject: json.subject,
                 recipient_type: json.recipient_type,
                 from: from,
                 to: to,
                 cc: cc,
+                show_starring: show_starring,
+                is_starred: json.is_starred,
+                is_business: json.is_business,
                 tof: KRYPTOS.utils.formatEmails(to),
                 ccf: KRYPTOS.utils.formatEmails(cc),
                 timestamp: new Date(json.timestamp).toDateString() + ' ' + new Date(json.timestamp).toLocaleTimeString(),
-                body: decodeURIComponent(json.body),
+                body: sanitized,//decodeURIComponent(json.body),
                 has_attachments: json.attachments && !KRYPTOS.utils.isEmpty(json.attachments_meta)
             });
             content.html(html);
@@ -961,7 +1052,7 @@ var Inbox = function () {
         
         $('textarea#message').css('visibility', 'hidden');
         
-        var subject = decodeURIComponent(json.subject);
+        var subject = json.subject;
         if(subject.indexOf("RE: ") === -1) {
             subject = "RE: " + subject;
         } 
@@ -970,6 +1061,7 @@ var Inbox = function () {
         var timeFrom = KRYPTOS.utils.timestamp(json.timestamp) + ' from ' + from;
         var editorContent = "<br><br>" + timeFrom + "<br>------------------------------<br>" + decodeURIComponent(KRYPTOS.utils.unescapeJson(json.body));
         focusEditor(editorContent);
+
     };
     
     var showDraft = function (json, uuid, from) {
@@ -981,7 +1073,7 @@ var Inbox = function () {
             handleBCCInput();
         }
         initTagit(to.toString(), cc.toString(), null, bcc.toString());
-        var subject = decodeURIComponent(json.subject);
+        var subject = json.subject;
         $('textarea#message').css('visibility', 'hidden');
         $('input#subject').val(subject);
         var editorContent = decodeURIComponent(KRYPTOS.utils.unescapeJson(json.body));
@@ -1007,7 +1099,7 @@ var Inbox = function () {
             recipients += "Cc: " + cc + "<br>";
         }
         
-        var subject = decodeURIComponent(json.subject);
+        var subject = json.subject;
         if(subject.indexOf("FW: ") === -1) {
             subject = "FW: " + subject;
         } 
@@ -1059,11 +1151,12 @@ var Inbox = function () {
                     
                     if (success) {
                         showSuccessMessage("Email Updated", "Your Alternative Email was updated successfully.");
+                        $('#alt-email').modal('hide');
                     }
                     else { /* Create generic function for error handling */
                         var errorMessage = '';
                         if (response.errors) {
-                            $err = response.errors;
+                            var $err = response.errors;
                             for (var prop in $err) {
                                 if($err.hasOwnProperty(prop)) {
                                     errorMessage += $err[prop] + "<br><br>";
@@ -1074,7 +1167,7 @@ var Inbox = function () {
                         }
                         showErrorMessage("Update Error", errorMessage);
                     }
-                $('#alt-email').modal('hide');
+                //notNow();
             });                       
         });
 
@@ -1139,7 +1232,7 @@ var Inbox = function () {
             }
         }
     };
-    
+
     var addContact = function(form, callback) {
         
         var url = form.prop('action');
@@ -1158,7 +1251,6 @@ var Inbox = function () {
         posting.done(function(response) {
             
             loadContacts();
-
             showSuccessMessage("Contact Added", response.username);
 
             form.find('input').val('');
@@ -1188,68 +1280,139 @@ var Inbox = function () {
         });
       
     };
-    
-    var changeSettings = function(form, callback) {
 
+
+    var changeSignature = function(form, callback) {
+        var url = form.prop('action');
+        var button = form.find('#setting-button');
+        var chkBoxSignEnable = form.find('input#enable_email_signature');
+        var enableSign = 0;
+
+        if (chkBoxSignEnable[0].checked) enableSign = 1;
+
+        // Encrypt Signature
+
+        button.prop('disabled', true);
+        button.text('Updating, please wait...');
+
+        promptPassword(function (password) {
+            $('.overlay').show();
+
+            var plain = editor.editable('getHTML', false, true);
+            var dataToEnc = {
+                id:   0,
+                name: 'default',
+                text: encodeURIComponent(plain)
+            };
+
+            KRYPTOS.Keys.getRecipientsPublicKeys([username], function (success, message) {
+                if (success) {
+                    var Encrypter = new KRYPTOS.Encrypter(dataToEnc, {to: [username]}, false, function (success, result) {
+                        if (success) {
+                            var dataToSend = {
+                                'password' : password,
+                                'signatures.enable': enableSign,
+                                'signature': JSON.stringify(result)
+                            };
+
+                            KRYPTOS.utils.sendData(dataToSend, 'settings', 'signature', function (success, response) {
+                                $('.overlay').hide();
+                                if (success) {
+                                    if (response.success) {
+                                        showSuccessMessage("Account Updated", response.success);
+                                    } else if (response.info) {
+                                        showInfoMessage("Account Info", response.info);
+                                    } else {
+                                        showSuccessMessage("Account Updated", "Your account has been updated successfully");
+                                    }
+                                    loadUserSettings();
+                                    loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
+                                } else {
+                                    // enable button to able registration
+                                    button.prop('disabled', false);
+                                    button.text('Save Changes');
+                                    showErrorMessage('Verification Error', 'We could not verify your password, please insert the correct password!');
+                                }
+                            });
+                        } else {
+                            console.log('changeSignature - Error on Encryption.');
+                        }
+                    });
+                    Encrypter.encryptSignatureMessage();
+                } else {
+                    console.log('changeSignature - Error getting Public Key.');
+                }
+            });
+        });
+    }
+
+
+
+    var changeSettings = function(form, callback) {
         var url = form.prop('action');
         var button = form.find('button');
+        var doSign = form.find('#has-email-signature');
+        var data = null;
+        var posting = null;
 
         promptPassword(function (password) {
             button.prop('disabled', true);
             button.text('Updating, please wait...');
             $('.overlay').show();
 
-            var data = form.serialize() + "&password=" + password;
-            var posting = $.post(url, data);
-            posting.done(function (response) {
-                $('.overlay').hide();
-                if (callback) {
-                    callback(true, response);
-                }
-                else {
+                data = form.serialize() + "&password=" + password;
+                posting = $.post(url, data);
 
-                    if (response.success) {
-                        showSuccessMessage("Account Updated", response.success);
-                    }
-                    else if (response.info) {
-                        showInfoMessage("Account Info", response.info);
+
+                posting.done(function (response) {
+                    $('.overlay').hide();
+                    if (callback) {
+                        callback(true, response);
                     }
                     else {
-                        showSuccessMessage("Account Updated", "Your account has been updated successfully");
+
+                        if (response.success) {
+                            showSuccessMessage("Account Updated", response.success);
+                        }
+                        else if (response.info) {
+                            showInfoMessage("Account Info", response.info);
+                        }
+                        else {
+                            showSuccessMessage("Account Updated", "Your account has been updated successfully");
+                        }
+
+                        loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
                     }
 
-                    loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
-                }
+                }).fail(function (jqxhr) {
+                    $('.overlay').hide();
+                    if (callback) {
 
-            }).fail(function (jqxhr) {
-                console.log('in fail');
-                $('.overlay').hide();
-                if (callback) {
-                    callback(false, $.parseJSON(jqxhr.responseText));
-                }
-                else {
-                    // enable button to able registration
-                    button.prop('disabled', false);
-                    button.text('Save Changes');
-
-
-                    var $er = $.parseJSON(jqxhr.responseText);
-                    if ($er.errors.verify) {
-                        showErrorMessage("Verification Error", $er.errors.verify);
+                        callback(false, $.parseJSON(jqxhr.responseText));
                     }
                     else {
-                        var errorMessage = "";
-                        if ($er.errors) {
-                            for (var prop in $er.errors) {
-                                if ($er.errors.hasOwnProperty(prop)) {
-                                    errorMessage += $er.errors[prop] + "<br><br>";
+                        // enable button to able registration
+                        button.prop('disabled', false);
+                        button.text('Save Changes');
+
+
+                        var $er = $.parseJSON(jqxhr.responseText);
+                        if ($er.errors.verify) {
+                            showErrorMessage("Verification Error", $er.errors.verify);
+                        }
+                        else {
+                            var errorMessage = "";
+                            if ($er.errors) {
+                                for (var prop in $er.errors) {
+                                    if ($er.errors.hasOwnProperty(prop)) {
+                                        errorMessage += $er.errors[prop] + "<br><br>";
+                                    }
                                 }
                             }
+                            showErrorMessage("Error in " + prop, errorMessage);
                         }
-                        showErrorMessage("Error in " + prop, errorMessage);
                     }
-                }
-            });
+                });
         });
     };
     
@@ -1287,7 +1450,8 @@ var Inbox = function () {
             });
             
     };
-    
+
+
     var saveDraft = function(callback) {
         var $form = $('form#compose');
         var $button = $form.find('button.save-draft');
@@ -1343,7 +1507,7 @@ var Inbox = function () {
                 else {
                     var plainText = {
                         timestamp: new Date().getTime(),
-                        subject: encodeURIComponent(KRYPTOS.utils.escapeHTML(fSubject)),
+                        subject: encodeURIComponent(fSubject),
                         body: encodeURIComponent(plain),
                         autodestruct: autodestruct,
                         attachments: attachmentsMeta
@@ -1463,10 +1627,9 @@ var Inbox = function () {
                     showErrorMessage("Mail Not Sent!", message);
                 }
                 else {
-
                     var plainText = {
                         timestamp: new Date().getTime(),
-                        subject: encodeURIComponent(KRYPTOS.utils.escapeHTML(fSubject)),
+                        subject: encodeURIComponent(fSubject),
                         to: KRYPTOS.utils.u2e(KRYPTOS.utils.escapeHTML(to)),
                         body: encodeURIComponent(plain),
                         autodestruct: autodestruct,
@@ -1477,7 +1640,7 @@ var Inbox = function () {
                         if (success) {
                             active = 0;
                             attachmentsMeta = [];
-                            showSuccessMessage("Mail Sent!", "The mail was sent successfully.");                                    
+//                            showSuccessMessage("Mail Sent!", "The mail was sent successfully.");                                    
                             loadInbox($(this), 'inbox');
                             setContactStatus();
                         }
@@ -1514,13 +1677,102 @@ var Inbox = function () {
         disableChat: function() {
             chatEnabled = false;
         },
+        
+        getNotifier: function() {
+            return notification;
+        },
+        
         //main function to initiate the module
         init: function () {
+
+            loadUserSettings();
 
             $('.inbox').on('propertychange change click keyup input paste', 'input#to, input#cc, input#bcc', function(e) {
                pollCurrentEmailList();
             });
-  
+
+            // Stared / Un Stared
+            $('.inbox').on('click', 'i.js_star', function(e) {
+                e.preventDefault();
+                var $i = $(this);
+                var $mid = null;
+                var $tmpMail = null;
+                if ($i.parent().is('a')) {
+                    $mid = $i.parent().attr('data-messageid');
+                } else {
+                    $mid = $i.parent().parent().attr('data-messageid');
+                }
+                if ($i.hasClass('fa-star-o')) {
+                    KRYPTOS.Messages.star($mid, function(result) {
+                        if (result) {
+                            // un-stared => stared
+                            // update cache
+                            $tmpMail = KRYPTOS.Messages.get($mid);
+                            $tmpMail.is_starred = 1;
+                            KRYPTOS.Messages.add($mid, $tmpMail);
+                            $i.removeClass('fa-star-o');
+                            $i.addClass('fa-star');
+                            $i.css('color', '#f7ca18');
+                            // trigger database update
+                        }
+                    });
+                } else {
+                    KRYPTOS.Messages.unstar($mid, function(result) {
+                        if (result) {
+                            // stared => un-stared
+                            // update cache
+                            $tmpMail = KRYPTOS.Messages.get($mid);
+                            $tmpMail.is_starred = 0;
+                            KRYPTOS.Messages.add($mid, $tmpMail);
+                            $i.removeClass('fa-star');
+                            $i.addClass('fa-star-o');
+                            $i.css('color', '#c1c1c1');
+                            // trigger database update
+                        }
+                    });
+
+                }
+            });
+
+            // Business / Un Business
+            $('.inbox').on('click', 'i.fa-briefcase', function(e) {
+                e.preventDefault();
+                var $i = $(this);
+                var $mid = null;
+                var $tmpMail = null;
+                if ($i.parent().is('a')) {
+                    $mid = $i.parent().attr('data-messageid');
+                } else {
+                    $mid = $i.parent().parent().attr('data-messageid');
+                }
+                if ($i.hasClass('js_business-o')) {
+                    KRYPTOS.Messages.business($mid, function(result) {
+                        if (result) {
+                            // un-business => business
+                            $tmpMail = KRYPTOS.Messages.get($mid);
+                            $tmpMail.is_business = 1;
+                            KRYPTOS.Messages.add($mid, $tmpMail);
+                            $i.removeClass('js_business-o');
+                            $i.addClass('js_business');
+                            $i.css('color','#777777');
+                        }
+                    });
+                } else {
+                    KRYPTOS.Messages.unbusiness($mid, function(result) {
+                        if (result) {
+                            // business => un-business
+                            $tmpMail = KRYPTOS.Messages.get($mid);
+                            $tmpMail.is_business = 0;
+                            KRYPTOS.Messages.add($mid, $tmpMail);
+                            $i.removeClass('js_business');
+                            $i.addClass('js_business-o');
+                            $i.css('color','#c1c1c1');
+                        }
+                    });
+                }
+            });
+
+
             // Handle next page load in all mailboxes
             $('.inbox').on('click', 'a.btn-paging', function(e) {
                 e.preventDefault();
@@ -1593,14 +1845,18 @@ var Inbox = function () {
                 changeSettings($(this));
                 return false;
             });
+
+            $('.inbox').on('submit', 'form.update-signature', function() {
+                changeSignature($(this));
+                return false;
+            });
             
             $('.inbox').on('submit', 'form.setup-2fa', function() {
                 var $form = $(this);
                 
                 changeSettings($form, function(success, response) {
                     
-                    
-                    $button = $form.find('button');
+                    var $button = $form.find('button');
                     $button.prop('disabled', false);
                     
                     if (success) {
@@ -1626,7 +1882,7 @@ var Inbox = function () {
                 changeSettings($form, function(success, response) {
                     
                     
-                    $button = $form.find('button');
+                    var $button = $form.find('button');
                     $button.prop('disabled', false);
                     
                     if (success) {
@@ -1656,8 +1912,8 @@ var Inbox = function () {
             $('.inbox').on('click', 'form.enabled-2fa button.show-qr', function() {
                 var $form = $('form.enabled-2fa');
                 $form.prop('action', 'settings/show-qr');
-                $b1 = $form.find('button.show-qr');
-                $b2 = $form.find('button.disable-2fa');
+                var $b1 = $form.find('button.show-qr');
+                var $b2 = $form.find('button.disable-2fa');
                 changeSettings($form, function(success, response) {
                     
                     $b1.text('Show QR Code');
@@ -1679,8 +1935,8 @@ var Inbox = function () {
             $('.inbox').on('click', 'form.enabled-2fa button.disable-2fa', function() {
                 var $form = $('form.enabled-2fa');
                 $form.prop('action', 'settings/disable2fa');
-                $b1 = $form.find('button.show-qr');
-                $b2 = $form.find('button.disable-2fa');
+                var $b1 = $form.find('button.show-qr');
+                var $b2 = $form.find('button.disable-2fa');
                 changeSettings($form, function(success, response) {
                       
                     $b1.text('Show QR Code');
@@ -1788,9 +2044,9 @@ var Inbox = function () {
             $('.inbox').on('click', '.unread-btn', function () {
                 var uuid = $(this).attr('data-messageid');                
                 if (!uuid) return;
-                    
+
                 KRYPTOS.Messages.unread(uuid, function(result) {
-                    loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
+                    loadInbox($('.inbox-nav > li.inbox > a'), 'inbox', null, null, true);
                 });             
             });
             
@@ -1819,9 +2075,9 @@ var Inbox = function () {
                     return this.value;
                 }).get().join(',');
                 if (!uuids) return;
-                    
+
                     KRYPTOS.Messages.unread(uuids, function(result) {
-                        loadInbox($('.inbox-nav > li.inbox > a'), 'inbox');
+                        loadInbox($('.inbox-nav > li.inbox > a'), 'inbox', null, null, true);
                     });             
             });
 
@@ -1870,6 +2126,55 @@ var Inbox = function () {
             $('.inbox-nav > li.notifications > a').on('click', function () {
                 loadPage($(this), 'notifications', 'Notifications Settings', 'settings');
             });
+
+            $('.inbox-nav > li.signature > a').on('click', function () {
+                loadUserSettings();
+                loadPage($(this), 'signature', 'Email Signature', 'settings', function() {
+                    initEditor();
+
+                    // Decrypt Signature
+
+                    var messageObj = JSON.parse(userSettings['settings.mail.signatures']);
+                    if (userSettings['settings.mail.signatures'] != null) {
+
+                        KRYPTOS.getPrivateDecryptionKey( function (success, pdk) {
+                            if (!success) {
+                                console.log('pdk problem!');
+                                return;
+                            }
+                            messageObj.key = KRYPTOS.utils.b642ab(messageObj.k);
+                            messageObj.iv = KRYPTOS.utils.b642ab(messageObj.iv);
+                            messageObj.message = KRYPTOS.utils.b642ab(messageObj.m);
+                            messageObj.signature = KRYPTOS.utils.b642ab(messageObj.s);
+
+                            //var pvk = KRYPTOS.Keys.getPublicKey(from, 'verify');
+                            KRYPTOS.Keys.getPublicKey(username, 'verify', function(pvk) {
+                                new KRYPTOS.Decrypter(messageObj.key, messageObj.iv, messageObj.message, messageObj.signature, pvk, pdk, function(plainText) {
+                                    //               (encryptedKey  , iv           , cipherText        , signature           , theirPublicKey, privateKey, callback)
+
+                                    if (plainText) {
+                                        focusEditor(decodeURIComponent(plainText.text));
+                                    }
+
+                                }).decrypt();
+                            });
+
+                        });
+                    }
+                    //if (dSign != null) focusEditor(dSign);
+                });
+            });
+
+
+            $('.inbox-nav > li.auto-destruction > a').on('click', function () {
+                loadPage($(this), 'auto-destruction', 'Auto Destruction Settings', 'settings');
+            });
+            
+            //$('.inbox-nav > li.signature > a').on('click', function () {
+            //    loadPage($(this), 'signature', 'Signature', 'settings', function() {
+            //        initEditor();
+            //    });
+            //});
             
             $('a.contacts-menu-item').on('click', function () {
                 loadContacts();
@@ -1923,6 +2228,16 @@ var Inbox = function () {
                 loadInbox($(this), 'drafts');
             });
 
+            // handle starred listing
+            $('.inbox-nav > li.starred > a').click(function () {
+                loadInbox($(this), 'starred');
+            });
+
+            // handle business listing
+            $('.inbox-nav > li.business > a').click(function () {
+                loadInbox($(this), 'business');
+            });
+
             // handle trash listing
             $('.inbox-nav > li.trash > a').click(function () {
                 loadInbox($(this), 'trash');
@@ -1940,13 +2255,12 @@ var Inbox = function () {
             
             $('.inbox').on('click', '.inbox-view a', function(e) {
                 e.preventDefault();
-                
-                var url = $(this).attr('href');
-                var win = window.open(url, '_blank');
-                win.focus();
-                win.opener = null; // Certain phishing attacks prevention
-
-                
+                KRYPTOS.utils.safeOpen($(this));
+            });
+            
+            $('body').on('click', '.chat-message-content a', function(e) {
+                e.preventDefault();                
+                KRYPTOS.utils.safeOpen($(this));
             });
             
             loadSound();
@@ -1970,7 +2284,6 @@ var Inbox = function () {
                 sendMail(); 
                 
             });
-            
             setInterval(mailCheck, 30000);
             
             $(window).focus(function() {
@@ -1985,9 +2298,10 @@ var Inbox = function () {
                 KRYPTOS.Chat.count();
                 chatTimer = setInterval(titleBlinkEffect, 1500);
             });
-
+            
+            notification.request();
         }
-
+        
     };
 
 }();
@@ -1999,14 +2313,20 @@ function promptPassword(callback, force) {
             callback(null);
         } else {
             $('button#verify-password').off('click');
-            $('#confirm-password input#password').val('');
+            $('#confirm-password input#password').off('keydown');
 
             $('#confirm-password').modal({
                 keyboard: force === true,
                 show: true,
                 backdrop: 'static'
             });
-            $('#confirm-password input#password').focus();
+
+            $('#confirm-password').on('shown.bs.modal', function (e) {
+                $('#confirm-password input#password').focus();
+            });
+
+            $('#confirm-password input#password').val('');
+
             $('button#verify-password').on('click', function() {
                 var username = $('#confirm-password input#username').val();
                 var password = $('#confirm-password input#password').val();
@@ -2023,6 +2343,36 @@ function promptPassword(callback, force) {
                     callback(accountPassword);
                 });
             });
+
+             //Press Enter on Confirm Password Dialog
+            $('#confirm-password input#password').on('keydown', function(event){
+                if ( event.which == 13 ) {
+                    $('button#verify-password').click();
+                }
+            });
+
+            // verify password
+            //var verifypassword = function() {
+            //    var username = $('#confirm-password input#username').val();
+            //    var password = $('#confirm-password input#password').val();
+            //    var $button = $('button#verify-password');
+            //    if (username === '' || password === '') {
+            //        return false;
+            //    }
+            //    $button.text('Verifying password, please wait...');
+            //    $button.prop('disabled', true);
+            //    KRYPTOS.init(username, password, 'ghostmail.com', function(username, accountPassword, mailPassword) {
+            //        $button.text('Verify Password');
+            //        $button.prop('disabled', false);
+            //        $('#confirm-password').modal('hide');
+            //        callback(accountPassword);
+            //    });
+            //};
+
+            //$('button#verify-password').on('click', function () {
+            //    verifypassword();
+            //});
+
         }
     });
 }
@@ -2040,13 +2390,14 @@ document.addEventListener("DOMContentLoaded", function () {
         KRYPTOS.Keys.getPrivateKeys(function(result) {
             KRYPTOS.Keys.getContactsPublicKeys(function() {
                 Inbox.init();
+
                 if (KRYPTOS.session.getItem('has_storage') === 'false') {
                     KRYPTOS.Storage.init(Inbox.getUsername());
                     KRYPTOS.Storage.setup();
                 }
                 try {
                     if (Inbox.isChatEnabled()) {
-                        KRYPTOS.Chat.init(Inbox.getUsername());
+                        KRYPTOS.Chat.init(Inbox.getUsername(), Inbox.getNotifier());
                     }
                 }
                 catch(exception) {
