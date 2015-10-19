@@ -2,7 +2,7 @@
 
 GhostMail is a client-to-client encrypted communications platform. 
 
-This is the official web client source code for GhostMail's encrypted email, chat & storage.
+This is the official web client source code for GhostMail's encrypted email, chat & storage services.
 
 Website: https://www.ghostmail.com
 
@@ -24,4 +24,4 @@ We use QUnit testing. We are still building our test framework and will add more
 
 Copyright © GhostCom GmbH. 2014 - 2015.
 
-License: https://github.com/ghostmail/GhostMailWeb/edit/master/LICENSE
+License: https://github.com/ghostmail/GhostMailWeb/blob/master/LICENSE
